@@ -1,0 +1,5 @@
+{
+  "best_val_acc": 0.9175,
+  "test_acc": 0.93,
+  "num_windows": 2664
+}
