@@ -200,7 +200,7 @@ with tab_lowlight:
     uploaded = st.file_uploader("Upload a sample frame (jpg/png)", type=["jpg", "jpeg", "png"])
     if uploaded is not None:
         import cv2
-        from low_light import enhance_low_light
+        from src.low_light import enhance_low_light
 
         file_bytes = np.frombuffer(uploaded.read(), np.uint8)
         frame_bgr = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
