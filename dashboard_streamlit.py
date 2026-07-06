@@ -48,8 +48,9 @@ LABEL_NAMES = {0: "Alert", 1: "Drowsy", 2: "Highly Drowsy"}
 st.set_page_config(page_title="Drowsiness Detection - Review Dashboard", layout="wide")
 st.title("Intelligent Driver Drowsiness Detection - Review Dashboard")
 st.caption(
-    "Read-only dashboard over project's own recorded features and comparison "
-    "results (features.csv, comparison_summary.csv, train_summary.json)."
+    "Read-only dashboard over this project's own recorded features and comparison "
+    "results (features.csv, comparison_summary.csv, train_summary.json). Does not "
+    "touch or replace realtime_infer.py."
 )
 
 LIVE_LOG_CSV = os.path.join(BASE_DIR, "logs", "live_features.csv")
@@ -67,7 +68,8 @@ with tab_live:
         "Shows live EAR / MAR / head-pose / alert-level while "
         "`python src/realtime_infer_live.py --source 0 --checkpoint models/best_model.pt` "
         "is running in another terminal. This does not run the webcam or the LSTM "
-        "itself -- it only reads the CSV that script writes to "
+        "itself -- it only reads the CSV that script writes to, the same way the "
+        "second reviewed project's detector + Streamlit dashboard worked together."
     )
 
     max_points = st.slider("Number of recent frames to plot", 50, 1000, 300, step=50)
@@ -208,10 +210,10 @@ with tab_lowlight:
 
         col1, col2 = st.columns(2)
         with col1:
-            st.image(cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB), caption="Original", width="stretch")
+            st.image(cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB), caption="Original", use_container_width=True)
         with col2:
             st.image(
                 cv2.cvtColor(enhanced_bgr, cv2.COLOR_BGR2RGB),
                 caption="Enhanced (gamma + CLAHE + hist-eq)",
-                width="stretch"
+                use_container_width=True,
             )
