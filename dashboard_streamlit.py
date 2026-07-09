@@ -47,11 +47,28 @@ LABEL_NAMES = {0: "Alert", 1: "Drowsy", 2: "Highly Drowsy"}
 
 st.set_page_config(page_title="Drowsiness Detection - Review Dashboard", layout="wide")
 st.title("Intelligent Driver Drowsiness Detection - Review Dashboard")
-st.caption(
-    "Read-only dashboard over this project's own recorded features and comparison "
-    "results (features.csv, comparison_summary.csv, train_summary.json). Does not "
-    "touch or replace realtime_infer.py."
+st.success(
+"Real-Time Intelligent Driver Drowsiness Detection using Personalized LSTM"
 )
+st.markdown("""
+### Intelligent Driver Monitoring Dashboard
+
+This dashboard visualizes
+
+• Driver State
+
+• EAR
+
+• MAR
+
+• Head Pose
+
+• LSTM Prediction
+
+• Existing vs Proposed Comparison
+
+• Low-Light Enhancement
+""")
 
 LIVE_LOG_CSV = os.path.join(BASE_DIR, "logs", "live_features.csv")
 
@@ -98,17 +115,75 @@ with tab_live:
                 except (pd.errors.EmptyDataError, pd.errors.ParserError):
                     time.sleep(1.0)
                     continue
-
                 if live_df.empty:
                     placeholder_status.info("Waiting for frames... (no face detected yet?)")
                 else:
                     latest = live_df.iloc[-1]
-                    placeholder_status.metric("Current status", latest["level_name"])
+                    st.subheader("Current Driver Status")
+                    c1, c2, c3 = st.columns(3)
+                    with c1:
+                        st.metric(
+                            "Prediction",
+                            latest["level_name"]
+                        )
+                    with c2:
+                        st.metric(
+                            "Confidence",
+                            f"{latest['confidence']*100:.2f}%"
+                        )
+                    with c3:
+                        st.metric(
+                            "FPS",
+                            f"{latest['fps']:.1f}"
+                        )
+                        c1, c2, c3 = st.columns(3)
+                        c1.metric(
+                            "EAR Avg",
+                            f"{latest['EAR_avg']:.3f}"
+                        )
+                        c2.metric(
+                            "MAR",
+                            f"{latest['MAR']:.3f}"
+                        )
+                        c3.metric(
+                            "Frames",
+                            len(live_df)
+                        )
+                        c1, c2, c3 = st.columns(3)
+                        c1.metric(
+                            "Pitch",
+                            f"{latest['pitch']:.2f}"
+                        )
+                        c2.metric(
+                            "Yaw",
+                            f"{latest['yaw']:.2f}"
+                        )
+                        c3.metric(
+                            "Roll",
+                            f"{latest['roll']:.2f}"
+                        )
+                        if latest["level"] == 0:
+                            st.success("🟢 Driver is ALERT")
+
+                        elif latest["level"] == 1:
+                            st.warning("🟠 Driver is DROWSY")
+
+                        else:
+                            st.error("🔴 Driver is HIGHLY DROWSY")
                     live_df = live_df.reset_index(drop=True)
                     placeholder_ear.line_chart(live_df[["EAR_left", "EAR_right", "EAR_avg"]])
                     placeholder_mar.line_chart(live_df[["MAR"]])
                     placeholder_pose.line_chart(live_df[["pitch", "yaw", "roll"]])
-
+                    st.subheader("Recent Predictions")
+                    st.dataframe(
+                        live_df[
+                            [
+                                "level_name",
+                                "confidence"
+                            ]
+                        ].tail(10),
+                        use_container_width=True
+                    )
                 time.sleep(1.0)
     else:
         st.info("Check \"Start live monitoring\" above while the live script is running.")

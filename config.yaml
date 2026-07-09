@@ -36,7 +36,7 @@ train:
   checkpoint_dir: models
 
 alerts:
-  smoothing_window: 10        # predictions averaged/majority-voted over last K windows
+  smoothing_window: 3        # predictions averaged/majority-voted over last K windows
   drowsy_cooldown_sec: 4
   highly_drowsy_cooldown_sec: 2
   ear_sanity_threshold: 0.21   # auxiliary rule-based cross-check, not the primary decision

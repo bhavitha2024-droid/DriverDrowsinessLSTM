@@ -31,6 +31,7 @@ import time
 import cv2
 import numpy as np
 import torch
+import torch.nn.functional as F
 
 sys.path.append(os.path.join(os.path.dirname(__file__)))
 from feature_extraction import FeatureExtractor  # noqa: E402
@@ -46,8 +47,18 @@ COLORS = {
 }
 
 LOG_COLUMNS = [
-    "timestamp", "EAR_left", "EAR_right", "EAR_avg", "MAR",
-    "pitch", "yaw", "roll", "level", "level_name",
+    "timestamp",
+    "EAR_left",
+    "EAR_right",
+    "EAR_avg",
+    "MAR",
+    "pitch",
+    "yaw",
+    "roll",
+    "confidence",
+    "fps",
+    "level",
+    "level_name",
 ]
 
 
@@ -163,14 +174,16 @@ def main():
                 buffer.push(feats_norm)
                 extra_text = f"EAR={feats[2]:.2f} MAR={feats[3]:.2f}"
                 if driver_profile:
-                    extra_text += f" | driver={args.driver_id} (personalized)"
-
+                   extra_text += f" | driver={args.driver_id} (personalized)"
+                confidence = 0.0
                 if buffer.is_ready():
                     window = buffer.as_array()
                     x = torch.from_numpy(window).float().unsqueeze(0).to(device)
                     with torch.no_grad():
                         logits = model(x)
-                        pred = int(logits.argmax(dim=1).item())
+                        probs = F.softmax(logits, dim=1)
+                        confidence = float(probs.max().item())
+                        pred = int(probs.argmax(dim=1).item())
                     current_level = smoother.update(pred)
                     action = alert_mgr.process(current_level)
                     if action["fire"]:
@@ -178,19 +191,26 @@ def main():
 
                 # log every processed frame with a face, regardless of whether the
                 # window/LSTM has produced a fresh prediction yet
+                now = time.time()
+                fps = 1.0 / max(now - prev_time, 1e-6)
+                prev_time = now    
                 log_writer.writerow([
-                    time.time(), feats[0], feats[1], feats[2], feats[3],
-                    feats[4], feats[5], feats[6], current_level,
-                    LEVEL_NAMES.get(current_level, "UNKNOWN"),
-                ])
+                        time.time(),
+                        feats[0],
+                        feats[1],
+                        feats[2],
+                        feats[3],
+                        feats[4],
+                        feats[5],
+                        feats[6],
+                        confidence if buffer.is_ready() else 0,
+                        fps,
+                        current_level,
+                        LEVEL_NAMES.get(current_level, "UNKNOWN"),
+                    ])
                 log_file.flush()
-
-            now = time.time()
-            fps = 1.0 / max(now - prev_time, 1e-6)
-            prev_time = now
-
-            frame = draw_hud(frame, current_level, fps, extra_text)
-            cv2.imshow("Intelligent Driver Drowsiness Detection (LSTM) - Live Logging", frame)
+                frame = draw_hud(frame, current_level, fps, extra_text)
+                cv2.imshow("Intelligent Driver Drowsiness Detection (LSTM) - Live Logging", frame)
 
             if cv2.waitKey(1) & 0xFF == ord("q"):
                 break
